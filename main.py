@@ -1,22 +1,31 @@
+import click
+import asyncio
 from client.llm_client import LLMClient
 
-async def main():
-    llm_client = LLMClient(None)
-    client = llm_client.get_client()
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-global-poland",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "What is the capital of France?"}
-            ]
-        )
-        print(response.choices[0].message.content)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        await llm_client.close()
+class CLI:
+    def __init__(self):
+        pass
 
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    def run_single(self, prompt: str):
+        asyncio.run(self._run(prompt))
+
+async def run(prompt):
+    llm_client = LLMClient()
+    async for event in llm_client.chat_completions(
+        messages=[{
+            "role": "user",
+            "content": prompt
+        }],
+        stream=True):
+        print(event.text_delta.content if event.text_delta else "", end="", flush=True)
+       
+
+
+@click.command()
+@click.argument("prompt", type=str, required=False)
+def main(prompt):
+    if prompt is None:
+        prompt = "What is the capital of France?"
+    asyncio.run(run(prompt))
+
+main()
